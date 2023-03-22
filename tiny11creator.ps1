@@ -32,8 +32,7 @@ Remove-Item WindowsIsoDownloader.zip | Out-Null
 Write-Output "Downloading Windows 11 iso file from Microsoft using WindowsIsoDownloader..."
 $isoDownloadProcess = (Start-Process ($toolsFolder + "WindowsIsoDownloader\WindowsIsoDownloader.exe") -NoNewWindow -Wait -WorkingDirectory ($toolsFolder + "WindowsIsoDownloader\") -PassThru)
 
-If ($isoDownloadProcess.ExitCode -eq 0)
-{
+if ($isoDownloadProcess.ExitCode -eq 0) {
 	#Mount the Windows 11 ISO
 	Write-Output "Mounting the original iso..."
 	$mountResult = Mount-DiskImage -ImagePath $isoPath
@@ -67,12 +66,9 @@ If ($isoDownloadProcess.ExitCode -eq 0)
 	$detectedProvisionnedPackages = Get-AppxProvisionedPackage -Path $installImageFolder
 
 	#Removing unwanted provisionned app packages
-	Foreach ($detectedProvisionnedPackage in $detectedProvisionnedPackages)
-	{
-		Foreach ($unwantedProvisionnedPackage in $unwantedProvisionnedPackages)
-		{
-			If ($detectedProvisionnedPackage.PackageName.Contains($unwantedProvisionnedPackage))
-			{
+	foreach ($detectedProvisionnedPackage in $detectedProvisionnedPackages) {
+		foreach ($unwantedProvisionnedPackage in $unwantedProvisionnedPackages) {
+			if ($detectedProvisionnedPackage.PackageName.Contains($unwantedProvisionnedPackage)) {
 				Remove-AppxProvisionedPackage -Path $installImageFolder -PackageName $detectedProvisionnedPackage.PackageName -ErrorAction SilentlyContinue | Out-Null
 			}
 		}
@@ -83,30 +79,23 @@ If ($isoDownloadProcess.ExitCode -eq 0)
 	$detectedWindowsPackages = Get-WindowsPackage -Path $installImageFolder
 
 	#Removing unwanted windows packages
-	Foreach ($detectedWindowsPackage in $detectedWindowsPackages)
-	{
-		Foreach ($unwantedWindowsPackage in $unwantedWindowsPackages)
-		{
-			If ($detectedWindowsPackage.PackageName.Contains($unwantedWindowsPackage))
-			{
+	foreach ($detectedWindowsPackage in $detectedWindowsPackages) {
+		foreach ($unwantedWindowsPackage in $unwantedWindowsPackages) {
+			if ($detectedWindowsPackage.PackageName.Contains($unwantedWindowsPackage)) {
 				Remove-WindowsPackage -Path $installImageFolder -PackageName $detectedWindowsPackage.PackageName -ErrorAction SilentlyContinue | Out-Null
 			}
 		}
 	}
 
 	Write-Output "Deleting PathsToDelete from the install.wim image..."
-	Foreach ($pathToDelete in $pathsToDelete)
-	{
+	foreach ($pathToDelete in $pathsToDelete) {
 		$fullpath = ($installImageFolder + $pathToDelete.Path)
 
-		If ($pathToDelete.IsFolder -eq $true)
-		{
+		if ($pathToDelete.IsFolder -eq $true) {
 			takeown /f $fullpath /r /d $yes | Out-Null
 			icacls $fullpath /grant ("$env:username"+":F") /T /C | Out-Null
 			Remove-Item -Force $fullpath -Recurse -ErrorAction SilentlyContinue | Out-Null
-		}
-		Else
-		{
+		} else {
 			takeown /f $fullpath | Out-Null
 			icacls $fullpath /grant ("$env:username"+":F") /T /C | Out-Null
 			Remove-Item -Force $fullpath -ErrorAction SilentlyContinue | Out-Null
@@ -189,9 +178,7 @@ If ($isoDownloadProcess.ExitCode -eq 0)
 	#Building the new trimmed and patched iso file
 	Write-Output "Building the tiny11.iso file..."
 	.\tools\oscdimg.exe -m -o -u2 -udfver102 -bootdata:("2#p0,e,b" + $isoFolder + "boot\etfsboot.com#pEF,e,b" + $isoFolder + "efi\microsoft\boot\efisys.bin") $isoFolder c:\tiny11.iso | Out-Null
-}
-Else
-{
+} else {
 	Write-Output "Unable to build the tiny11 iso (an error occured while trying to download the original iso using WindowsIsoDownloader)."
 }
 
