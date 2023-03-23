@@ -133,7 +133,7 @@ if ($isoDownloadProcess.ExitCode -eq 0) {
 	Dismount-WindowsImage -Path $installImageFolder -Save | Out-Null
 
 	#Moving the wanted image index to a new image
-	Write-Output "Creating a clean install.wim image without all unecessary indexes..."
+	Write-Output "Creating a clean install.wim image without all unnecessary indexes..."
 	Export-WindowsImage -SourceImagePath ($isoFolder + "sources\install.wim") -SourceIndex $wantedImageIndex -DestinationImagePath ($isoFolder + "sources\install_patched.wim") -CompressionType max | Out-Null
 
 	#Delete the old install.wim and rename the new one
@@ -164,7 +164,7 @@ if ($isoDownloadProcess.ExitCode -eq 0) {
 	Dismount-WindowsImage -Path $bootImageFolder -Save | Out-Null
 
 	#Moving the wanted image index to a new image
-	Write-Output "Creating a clean boot.wim image without all unecessary indexes..."
+	Write-Output "Creating a clean boot.wim image without all unnecessary indexes..."
 	Export-WindowsImage -SourceImagePath ($isoFolder + "sources\boot.wim") -SourceIndex 2 -DestinationImagePath ($isoFolder + "sources\boot_patched.wim") -CompressionType max | Out-Null
 
 	#Delete the old boot.wim and rename the new one
