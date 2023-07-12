@@ -8,8 +8,6 @@ $unwantedWindowsPackages = $config.WindowsPackagesToRemove
 $pathsToDelete = $config.PathsToDelete
 $windowsIsoDownloaderReleaseUrl = $config.WindowsIsoDownloaderReleaseUrl
 
-#Defining system variables
-
 ###########################################
 ##          Prepare the process          ##
 ###########################################
@@ -22,9 +20,9 @@ while ( -not($_choose_path -ge 1 -and $_choose_path -le 2) ) {
 	$_choose_path = Read-Host -Prompt 'Please choose valid option: '
 }
 if ($_choose_path  -eq "2") {
-	$rootWorkdir = Read-Host -Prompt "Please insert the desired work directory`n"
+	$rootWorkdir = Read-Host -Prompt "`nPlease insert the your work directory ex [ c:\`nYour Path ]"
 	while ( -not (Test-Path -Path $rootWorkdir) ) {
-		$rootWorkdir = Read-Host -Prompt "Please insert the valid directory path`n"
+		$rootWorkdir = Read-Host -Prompt "Please insert the valid directory path will be assign`nYour Path"
 	}
 	if (-not $rootWorkdir.EndsWith("\")) {
 		$rootWorkdir = $rootWorkdir + "\tiny11\"
@@ -32,7 +30,6 @@ if ($_choose_path  -eq "2") {
 	else {
 		$rootWorkdir = $rootWorkdir + "tiny11\"
 	}
-	# Re assign the paths in-case user changed
 }
 
 # Write-Output "Creating needed variables..."
@@ -47,7 +44,9 @@ $yes = (cmd /c "choice <nul 2>nul")[1]
 #The $yes variable gets the "y" from "yes" (or corresponding letter in the language your computer is using).
 #It is used to answer automatically to the "takeown" command, because the answer choices are localized which is not handy at all.
 clear
-Write-Output "`..............................................................................................`n"
+Write-Output "`n..............................................................................................`n"
+Write-Output "WORKDIR Path: $rootWorkdir"
+Write-Output "`n..............................................................................................`n"
 Write-Output "Would you like to download the latest version of Windows 11 or provide your own ISO file" 
 Write-Output "[1] Download `n[2] Provide ISO File" 
 $_choose_image = Read-Host -Prompt 'Choose option: '
@@ -66,8 +65,9 @@ if ($_choose_image -eq "2") {
 # Confirmation
 while ($_confirm_user -notlike "*y" -and $_confirm_user -notlike "*n") {
 	clear
-	Write-Output "..............................................................................................`n"
+	Write-Output "`n..............................................................................................`n"
 	Write-Output "WORKDIR: $rootWorkdir [<- Will be removed after process.]`nISO Windows: $isoPath `nTiny11 ISO Image: $tinyPath"
+	Write-Output "`n..............................................................................................`n"
 	$_confirm_user = Read-Host "`nPlease choose one of these options? [y] or [n]"
 }
 if ($_confirm_user -like "n" ) {
