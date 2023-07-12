@@ -1,4 +1,5 @@
 #Defining preferences variables
+clear
 Write-Output "Loading configuration from config.json..."
 $config = (Get-Content "config.json" -Raw) | ConvertFrom-Json
 $wantedImageName = $config.WantedWindowsEdition
@@ -8,31 +9,97 @@ $pathsToDelete = $config.PathsToDelete
 $windowsIsoDownloaderReleaseUrl = $config.WindowsIsoDownloaderReleaseUrl
 
 #Defining system variables
-Write-Output "Creating needed variables..."
-$rootWorkdir = "c:\tiny11\"
+
+###########################################
+##          Prepare the process          ##
+###########################################
+Write-Output "..............................................................................................`n"
+Write-Output "Would you like to change the work directory? DEFAULT is C:\tiny11\ `n[This will decide downloaded windows image as well ex: c:\windows11.iso]`n" 
+Write-Output "[1] Use the default path `n[2] Change default path`n"
+$_choose_path = Read-Host -Prompt "Please select option: " 
+$_choose_path = $_choose_path -replace " ",""
+while ( -not($_choose_path -ge 1 -and $_choose_path -le 2) ) {
+	$_choose_path = Read-Host -Prompt 'Please choose valid option: '
+}
+if ($_choose_path  -eq "2") {
+	$rootWorkdir = Read-Host -Prompt "Please insert the desired work directory`n"
+	while ( -not (Test-Path -Path $rootWorkdir) ) {
+		$rootWorkdir = Read-Host -Prompt "Please insert the valid directory path`n"
+	}
+	if (-not $rootWorkdir.EndsWith("\")) {
+		$rootWorkdir = $rootWorkdir + "\tiny11\"
+	}
+	else {
+		$rootWorkdir = $rootWorkdir + "tiny11\"
+	}
+	# Re assign the paths in-case user changed
+}
+
+# Write-Output "Creating needed variables..."
+$rootWorkdir = if (-not($rootWorkdir)) {"c:\tiny11\"} else {$rootWorkdir}
 $isoFolder = $rootWorkdir + "iso\"
 $installImageFolder = $rootWorkdir + "installimage\"
 $bootImageFolder = $rootWorkdir + "bootimage\"
 $toolsFolder = $rootWorkdir + "tools\"
-$isoPath = "c:\windows11.iso"
+$isoPath =  (Split-Path $rootWorkdir -Parent).ToString() + "windows11.iso"
+$tinyPath = (Split-Path $isoPath -Parent ).ToString() + "tiny11.iso"
 $yes = (cmd /c "choice <nul 2>nul")[1]
 #The $yes variable gets the "y" from "yes" (or corresponding letter in the language your computer is using).
 #It is used to answer automatically to the "takeown" command, because the answer choices are localized which is not handy at all.
+clear
+Write-Output "`..............................................................................................`n"
+Write-Output "Would you like to download the latest version of Windows 11 or provide your own ISO file" 
+Write-Output "[1] Download `n[2] Provide ISO File" 
+$_choose_image = Read-Host -Prompt 'Choose option: '
+$_choose_image = $_choose_image -replace " ",""
+while ( -not($_choose_image -ge 1 -and $_choose_image -le 2) ) {
+	$_choose_image = Read-Host -Prompt 'Please choose valid option: '
+}
+if ($_choose_image -eq "2") {
+	$isoPath =  Read-Host -Prompt "Please insert the ISO path location Example: c:\windows11.iso`n" 
+	while  ( (-not(Test-Path -Path $isoPath -PathType Leaf)) -or  (-not($isoPath.EndsWith(".iso"))) ) {
+		$isoPath =  Read-Host -Prompt "This file doesn't exist or not valid please insert valid ISO File path`n"
+	}
+	$_local_image = "true"
+	$tinyPath = (Split-Path $isoPath -Parent ).ToString() + "tiny11.iso"
+}
+# Confirmation
+while ($_confirm_user -notlike "*y" -and $_confirm_user -notlike "*n") {
+	clear
+	Write-Output "..............................................................................................`n"
+	Write-Output "WORKDIR: $rootWorkdir [<- Will be removed after process.]`nISO Windows: $isoPath `nTiny11 ISO Image: $tinyPath"
+	$_confirm_user = Read-Host "`nPlease choose one of these options? [y] or [n]"
+}
+if ($_confirm_user -like "n" ) {
+	clear
+	Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+	.\tiny11creator.ps1
+}
+# Start download incase user_input download else gonna pass
+if ($_choose_image -eq "1")  {
+	md $rootWorkdir | Out-Null
+	md ($toolsFolder + "WindowsIsoDownloader\") | Out-Null
 
-md $rootWorkdir | Out-Null
-md ($toolsFolder + "WindowsIsoDownloader\") | Out-Null
+	Write-Output "Downloading WindowsIsoDownloader release from GitHub..."
+	Invoke-WebRequest -Uri $windowsIsoDownloaderReleaseUrl -OutFile WindowsIsoDownloader.zip
+	Write-Output "Extracting WindowsIsoDownloader release..."
+	Expand-Archive -Path WindowsIsoDownloader.zip -DestinationPath ($toolsFolder + "WindowsIsoDownloader\") -Force
+	Remove-Item WindowsIsoDownloader.zip | Out-Null
 
-Write-Output "Downloading WindowsIsoDownloader release from GitHub..."
-Invoke-WebRequest -Uri $windowsIsoDownloaderReleaseUrl -OutFile WindowsIsoDownloader.zip
-Write-Output "Extracting WindowsIsoDownloader release..."
-Expand-Archive -Path WindowsIsoDownloader.zip -DestinationPath ($toolsFolder + "WindowsIsoDownloader\")
-Remove-Item WindowsIsoDownloader.zip | Out-Null
+	Write-Output "$toolsFolder"+"WindowsIsoDownloader\config.json"
+	# set new download location for Windows11.ISO
+	$_json_config_path = Join-Path -path $toolsFolder -ChildPath "WindowsIsoDownloader\config.json"
+	$json = get-content $_json_config_path  | ConvertFrom-Json
+	$json.DownloadFolder = (Split-Path $rootWorkdir -Parent).ToString()
+	ConvertTo-Json $json -Depth 10 | Out-File $_json_config_path -Force
+	
+	# # Downloading the Windows 11 ISO using WindowsIsoDownloader
+	Write-Output "Downloading Windows 11 iso file from Microsoft using WindowsIsoDownloader..."
+	$isoDownloadProcess = (Start-Process ($toolsFolder + "WindowsIsoDownloader\WindowsIsoDownloader.exe") -NoNewWindow -Wait -WorkingDirectory ($toolsFolder + "WindowsIsoDownloader\") -PassThru)
+}
 
-#Downloading the Windows 11 ISO using WindowsIsoDownloader
-Write-Output "Downloading Windows 11 iso file from Microsoft using WindowsIsoDownloader..."
-$isoDownloadProcess = (Start-Process ($toolsFolder + "WindowsIsoDownloader\WindowsIsoDownloader.exe") -NoNewWindow -Wait -WorkingDirectory ($toolsFolder + "WindowsIsoDownloader\") -PassThru)
 
-if ($isoDownloadProcess.ExitCode -eq 0) {
+if ($isoDownloadProcess.ExitCode -eq 0 -or $_local_image) {
 	#Mount the Windows 11 ISO
 	Write-Output "Mounting the original iso..."
 	$mountResult = Mount-DiskImage -ImagePath $isoPath
@@ -177,7 +244,7 @@ if ($isoDownloadProcess.ExitCode -eq 0) {
 
 	#Building the new trimmed and patched iso file
 	Write-Output "Building the tiny11.iso file..."
-	.\tools\oscdimg.exe -m -o -u2 -udfver102 -bootdata:("2#p0,e,b" + $isoFolder + "boot\etfsboot.com#pEF,e,b" + $isoFolder + "efi\microsoft\boot\efisys.bin") $isoFolder c:\tiny11.iso | Out-Null
+	.\tools\oscdimg.exe -m -o -u2 -udfver102 -bootdata:("2#p0,e,b" + $isoFolder + "boot\etfsboot.com#pEF,e,b" + $isoFolder + "efi\microsoft\boot\efisys.bin") $isoFolder $tinyPath | Out-Null
 } else {
 	Write-Output "Unable to build the tiny11 iso (an error occured while trying to download the original iso using WindowsIsoDownloader)."
 }
