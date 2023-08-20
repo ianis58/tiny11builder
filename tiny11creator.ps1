@@ -12,17 +12,25 @@ $windowsIsoDownloaderReleaseUrl = $config.WindowsIsoDownloaderReleaseUrl
 ##          Prepare the process          ##
 ###########################################
 Write-Output "..............................................................................................`n"
-Write-Output "Would you like to change the work directory? DEFAULT is C:\tiny11\ `n[This will decide downloaded windows image as well ex: c:\windows11.iso]`n" 
-Write-Output "[1] Use the default path `n[2] Change default path`n"
-$_choose_path = Read-Host -Prompt "Please select option: " 
+Write-Output "Would you like to change the work directory? DEFAULT is C:\tiny11\ `n[This will decide the windows-image download path as well ex: c:\windows11.iso]`n" 
+Write-Output "[1]. Use the default path `n[2]. Change default path`n"
+$_choose_path = Read-Host -Prompt "Please select option" 
 $_choose_path = $_choose_path -replace " ",""
 while ( -not($_choose_path -ge 1 -and $_choose_path -le 2) ) {
-	$_choose_path = Read-Host -Prompt 'Please choose valid option: '
+	$_choose_path = Read-Host -Prompt 'Please choose valid option'
 }
 if ($_choose_path  -eq "2") {
-	$rootWorkdir = Read-Host -Prompt "`nPlease insert the your work directory ex [ c:\`nYour Path ]"
-	while ( -not (Test-Path -Path $rootWorkdir) ) {
-		$rootWorkdir = Read-Host -Prompt "Please insert the valid directory path will be assign`nYour Path"
+	$rootWorkdir = Read-Host -Prompt "`nPlease insert your WORKDIR path SPACES Aren't allowed! e.g [ c:\ ]`nYour Path"
+	if ($rootWorkdir -eq "" -or $rootWorkdir -eq $null) {$correctDir = $false} else {
+		if((Test-Path -Path $rootWorkdir -PathType Container) -and ($rootWorkdir -notlike "* *")) {$correctDir=$true }
+	}
+	while (!$correctDir) {
+		# Check if DIR is valid!
+		if ($rootWorkdir -like "* *") {$error_message = "`nSpaces aren't Allowed!"} # If there is spaces.
+		else {$error_message = "`nPlease insert the valid directory path will be assign`nYour Path:"}
+		$rootWorkdir = Read-Host -Prompt "$error_message"
+
+		if(($rootWorkdir) -and ($rootWorkdir -notlike "* *")) { if(Test-Path -Path $rootWorkdir -PathType Container) {$correctDir=$true } }
 	}
 	if (-not $rootWorkdir.EndsWith("\")) {
 		$rootWorkdir = $rootWorkdir + "\tiny11\"
@@ -31,15 +39,14 @@ if ($_choose_path  -eq "2") {
 		$rootWorkdir = $rootWorkdir + "tiny11\"
 	}
 }
-
 # Write-Output "Creating needed variables..."
 $rootWorkdir = if (-not($rootWorkdir)) {"c:\tiny11\"} else {$rootWorkdir}
 $isoFolder = $rootWorkdir + "iso\"
 $installImageFolder = $rootWorkdir + "installimage\"
 $bootImageFolder = $rootWorkdir + "bootimage\"
 $toolsFolder = $rootWorkdir + "tools\"
-$isoPath =  (Split-Path $rootWorkdir -Parent).ToString() + "windows11.iso"
-$tinyPath = (Split-Path $isoPath -Parent ).ToString() + "tiny11.iso"
+$isoPath =  Join-Path -path (Split-Path $rootWorkdir -Parent ).ToString() -ChildPath "windows11.iso"
+$tinyPath = Join-Path -path (Split-Path $isoPath -Parent ).ToString() -ChildPath "tiny11.iso"
 $yes = (cmd /c "choice <nul 2>nul")[1]
 #The $yes variable gets the "y" from "yes" (or corresponding letter in the language your computer is using).
 #It is used to answer automatically to the "takeown" command, because the answer choices are localized which is not handy at all.
@@ -48,19 +55,23 @@ Write-Output "`n................................................................
 Write-Output "WORKDIR Path: $rootWorkdir"
 Write-Output "`n..............................................................................................`n"
 Write-Output "Would you like to download the latest version of Windows 11 or provide your own ISO file" 
-Write-Output "[1] Download `n[2] Provide ISO File" 
+Write-Output "[1]. Download `n[2]. Provide ISO File" 
 $_choose_image = Read-Host -Prompt 'Choose option: '
 $_choose_image = $_choose_image -replace " ",""
 while ( -not($_choose_image -ge 1 -and $_choose_image -le 2) ) {
 	$_choose_image = Read-Host -Prompt 'Please choose valid option: '
 }
 if ($_choose_image -eq "2") {
-	$isoPath =  Read-Host -Prompt "Please insert the ISO path location Example: c:\windows11.iso`n" 
-	while  ( (-not(Test-Path -Path $isoPath -PathType Leaf)) -or  (-not($isoPath.EndsWith(".iso"))) ) {
-		$isoPath =  Read-Host -Prompt "This file doesn't exist or not valid please insert valid ISO File path`n"
+	$isoPath =  Read-Host -Prompt "Please insert the ISO path location Example: c:\windows11.iso`nISO Path" 
+	if ($isoPath -eq "" -or $isoPath -eq $null) {$correctISO = $false} else {
+		if ($isoPath) { if( (Test-Path -Path $isoPath -PathType Leaf) -and  ($isoPath.EndsWith(".iso")) ) {$correctISO = $true} }
 	}
-	$_local_image = "true"
-	$tinyPath = (Split-Path $isoPath -Parent ).ToString() + "tiny11.iso"
+	while  ( !$correctISO ) {
+		$isoPath =  Read-Host -Prompt "This file doesn't exist or not valid please insert valid ISO File path`nISO Path"
+		if ($isoPath) { if( (Test-Path -Path $isoPath -PathType Leaf) -and  ($isoPath.EndsWith(".iso")) ) {$correctISO = $true} }
+	}
+	$_local_image = $true
+	$tinyPath = Join-Path -path (Split-Path $isoPath -Parent ).ToString() -ChildPath "tiny11.iso"
 }
 # Confirmation
 while ($_confirm_user -notlike "*y" -and $_confirm_user -notlike "*n") {
@@ -68,7 +79,9 @@ while ($_confirm_user -notlike "*y" -and $_confirm_user -notlike "*n") {
 	Write-Output "`n..............................................................................................`n"
 	Write-Output "WORKDIR: $rootWorkdir [<- Will be removed after process.]`nISO Windows: $isoPath `nTiny11 ISO Image: $tinyPath"
 	Write-Output "`n..............................................................................................`n"
-	$_confirm_user = Read-Host "`nPlease choose one of these options? [y] or [n]"
+	if($_choose_image -eq "1") {Write-Output "Note* After the donwload complete a message will show up to choose a Windows edition! and continue the process"}
+	if($_choose_image -eq "2") {Write-Output "Note* Wait a momnets after the process starts you will need to choose Windows Edition."}
+	$_confirm_user = Read-Host "`nDo you want to start the process? [y] or [n]"
 }
 if ($_confirm_user -like "n" ) {
 	clear
@@ -77,8 +90,8 @@ if ($_confirm_user -like "n" ) {
 }
 # Start download incase user_input download else gonna pass
 if ($_choose_image -eq "1")  {
-	md $rootWorkdir | Out-Null
-	md ($toolsFolder + "WindowsIsoDownloader\") | Out-Null
+	New-Item -ItemType Directory -Force -Path $rootWorkdir | Out-Null
+	New-Item -ItemType Directory -Force -Path ($toolsFolder + "WindowsIsoDownloader\") | Out-Null
 
 	Write-Output "Downloading WindowsIsoDownloader release from GitHub..."
 	Invoke-WebRequest -Uri $windowsIsoDownloaderReleaseUrl -OutFile WindowsIsoDownloader.zip
@@ -86,7 +99,6 @@ if ($_choose_image -eq "1")  {
 	Expand-Archive -Path WindowsIsoDownloader.zip -DestinationPath ($toolsFolder + "WindowsIsoDownloader\") -Force
 	Remove-Item WindowsIsoDownloader.zip | Out-Null
 
-	Write-Output "$toolsFolder"+"WindowsIsoDownloader\config.json"
 	# set new download location for Windows11.ISO
 	$_json_config_path = Join-Path -path $toolsFolder -ChildPath "WindowsIsoDownloader\config.json"
 	$json = get-content $_json_config_path  | ConvertFrom-Json
@@ -106,10 +118,27 @@ if ($isoDownloadProcess.ExitCode -eq 0 -or $_local_image) {
 	$isoDriveLetter = ($mountResult | Get-Volume).DriveLetter
 
 	#Creating needed temporary folders
-	Write-Output "Creating temporary folders..."
-	md $isoFolder | Out-Null
-	md $installImageFolder | Out-Null
-	md $bootImageFolder | Out-Null
+	Write-Output "Creating temporary folders...`n"
+	New-Item -ItemType Directory -Force -Path $isoFolder | Out-Null
+	New-Item -ItemType Directory -Force -Path $installImageFolder | Out-Null
+	New-Item -ItemType Directory -Force -Path $bootImageFolder | Out-Null
+
+	################# Beginning of install.wim patches ##################
+
+	#Return and choose avaliable windows editions
+	$images_count = (Get-WindowsImage -ImagePath ($isoDriveLetter + ":\sources\install.wim")).Count
+	$selected_image_index = 1
+	Get-WindowsImage -ImagePath ($isoDriveLetter + ":\sources\install.wim") | foreach-object { 
+		Write-Output "[$($selected_image_index)]. $($_.ImageName)"
+		$selected_image_index++ 
+	}
+	$wantedImageIndex = Read-Host "`nChoose Windows Edition" 
+	$wantedImageIndex = $wantedImageIndex -replace " ",""
+	while ( ([int]$wantedImageIndex -lt 1) -or ([int]$wantedImageIndex -ge [int]$images_count) ) {
+		$wantedImageIndex = $wantedImageIndex -replace " ",""
+		$wantedImageIndex = Read-Host "Please choose valid option"
+	}	
+
 
 	#Copying the ISO files to the ISO folder
 	Write-Output "Copying the content of the original iso to the work folder..."
@@ -118,10 +147,6 @@ if ($isoDownloadProcess.ExitCode -eq 0 -or $_local_image) {
 	#Unmounting the original ISO since we don't need it anymore (we have a copy of the content)
 	Write-Output "Unmounting the original iso..."
 	Dismount-DiskImage -ImagePath $isoPath | Out-Null
-
-	################# Beginning of install.wim patches ##################
-	#Getting the wanted image index
-	$wantedImageIndex = Get-WindowsImage -ImagePath ($isoFolder + "sources\install.wim") | where-object { $_.ImageName -eq $wantedImageName } | Select-Object -ExpandProperty ImageIndex
 
 	#Mounting the WIM image
 	Write-Output "Mounting the install.wim image..."
