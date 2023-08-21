@@ -28,32 +28,37 @@ if ($workDirOption  -eq "2") {
 	$rootWorkdir = (Read-Host -Prompt "`nPlease insert your a valid directory path where 'tiny11' folder will be created. Spaces Aren't allowed! e.g [ c:\ ]`nYour Path").Trim('"')
 	# Make sure input isn't empty. otherwise check if it's valid path.
 	if ($rootWorkdir -eq "" -or $rootWorkdir -eq $null) {$correctDir = $false} else {
-		if((Test-Path -Path $rootWorkdir -PathType Container) -and ($rootWorkdir -notlike "* *")) {
+		if((Test-Path -Path $rootWorkdir -PathType Container) -and ($rootWorkdir -notlike "* *" )) {
 			$correctDir=$true
 		}
-		elseif( $rootWorkdir.ToLower().EndsWith(".iso") -and ($rootWorkdir -notlike "* *") ) {
-			$correctDir=$true
-			$providedImage = $rootWorkdir
+		elseif( $rootWorkdir.ToLower().EndsWith(".iso") -and (([System.IO.Path]::GetDirectoryName($rootWorkdir)) -notlike "* *" ) ) {
+			# Check if file exists.
+			if (Test-Path -Path $rootWorkdir -PathType Leaf){
+				$correctDir=$true 
+				$providedImage = $rootWorkdir
+			}
 		}
 	}
 	while (!$correctDir) {
-
 		# Try to check the error then explain it in error_message.
-		if ($rootWorkdir -like "* *") {$error_message = "`nSpaces aren't Allowed!"} # If there is spaces.
-		else {$error_message = "`nPlease insert the valid directory path will be assign`nYour Path:"}
+		if ($rootWorkdir -like "* *" -and ([System.IO.Path]::GetDirectoryName($rootWorkdir))) {$error_message = "`nSpaces aren't Allowed!"} # If there is spaces.
+		else {$error_message = "`nPlease insert the valid directory path will be assign`nYour Path"}
 
 		$rootWorkdir = (Read-Host -Prompt "$error_message").Trim('"')
 		# Test of valid inputs.
-		if(($rootWorkdir) -and ( -notlike "* *")) {
+		if(($rootWorkdir) -and ($rootWorkdir -notlike "* *")) {
 			# In-case user provide Folder, next step ask for images.
 			if(Test-Path -Path $rootWorkdir -PathType Container) {
 				$correctDir=$true 
 				$rootWorkdir = Join-Path -Path $rootWorkdir -ChildPath "tiny11\"
 			}
 			# In-case user provided an ISO File We assume WORKDIR in the same folder.
-			elseif ( $rootWorkdir.ToLower().EndsWith(".iso") -and ($rootWorkdir -notlike "* *") ) { 
-				$correctDir=$true 
-				$providedImage = $rootWorkdir
+			elseif ( $rootWorkdir.ToLower().EndsWith(".iso") -and (([System.IO.Path]::GetDirectoryName($rootWorkdir)) -notlike "* *") ) { 
+				# Check if file exists.
+				if (Test-Path -Path $rootWorkdir -PathType Leaf) {
+					$correctDir=$true 
+					$providedImage = $rootWorkdir
+				}
 			}
 		}
 	}
