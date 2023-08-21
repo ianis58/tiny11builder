@@ -134,7 +134,6 @@ function callBack-MSG-processStarts {
 	Write-Output "TEMPORARY WORKDIR: $rootWorkdir"
 	Write-Output "ISO Windows: $isoPath"
 	Write-Output "Tiny11 ISO Image: $tinyPath"
-	Write-Output "ISO FOLDER: $isoFolder"
 	Write-Output "Windows Edition: $wantedImageName"
 	Write-Output "`n..............................................................................................`n"
 }
