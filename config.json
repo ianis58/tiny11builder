@@ -1,4 +1,11 @@
 {
+    "WindowsOscdimgUrls" : [
+	"https://download.microsoft.com/download/6/7/4/674ec7db-7c89-4f2b-8363-689055c2b430/adk/Installers/52be7e8e9164388a9e6c24d01f6f1625.cab",
+	"https://download.microsoft.com/download/6/7/4/674ec7db-7c89-4f2b-8363-689055c2b430/adk/Installers/5d984200acbde182fd99cbfbe9bad133.cab",
+	"https://download.microsoft.com/download/6/7/4/674ec7db-7c89-4f2b-8363-689055c2b430/adk/Installers/9d2b092478d6cca70d5ac957368c00ba.cab",
+	"https://download.microsoft.com/download/6/7/4/674ec7db-7c89-4f2b-8363-689055c2b430/adk/Installers/bbf55224a0290f00676ddc410f004498.cab",
+	"https://download.microsoft.com/download/6/7/4/674ec7db-7c89-4f2b-8363-689055c2b430/adk/Installers/Oscdimg%20(DesktopEditions)-x86_en-us.msi"
+    ],
     "WindowsIsoDownloaderReleaseUrl": "https://github.com/ianis58/WindowsIsoDownloader/releases/latest/download/WindowsIsoDownloader.zip",
     "WantedWindowsEdition": "Windows 11 Pro",
     "ProvisionnedPackagesToRemove": [

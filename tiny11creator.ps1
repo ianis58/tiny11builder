@@ -6,6 +6,7 @@ $unwantedProvisionnedPackages = $config.ProvisionnedPackagesToRemove
 $unwantedWindowsPackages = $config.WindowsPackagesToRemove
 $pathsToDelete = $config.PathsToDelete
 $windowsIsoDownloaderReleaseUrl = $config.WindowsIsoDownloaderReleaseUrl
+$windowsOscdimgUrls = $config.windowsOscdimgUrls
 
 #Defining system variables
 Write-Output "Creating needed variables..."
@@ -14,13 +15,34 @@ $isoFolder = $rootWorkdir + "iso\"
 $installImageFolder = $rootWorkdir + "installimage\"
 $bootImageFolder = $rootWorkdir + "bootimage\"
 $toolsFolder = $rootWorkdir + "tools\"
+$tempOscddir = $rootWorkdir + "tempOscdimg\"
+$oscdpkg = (Split-Path $WindowsOscdimgUrls[4] -Leaf)
+$oscdpath = $tempOscddir + "temp\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe"
 $isoPath = "c:\windows11.iso"
 $yes = (cmd /c "choice <nul 2>nul")[1]
 #The $yes variable gets the "y" from "yes" (or corresponding letter in the language your computer is using).
 #It is used to answer automatically to the "takeown" command, because the answer choices are localized which is not handy at all.
+$MSIArguments = @(
+    'TARGETDIR={0}' -f ($tempOscddir + "temp\")
+    "/a"
+    ('"{0}"' -f ($tempOscddir + $oscdpkg))
+    "/qn"
+)
 
 md $rootWorkdir | Out-Null
+md $tempOscddir | Out-Null
+md $toolsFolder | Out-Null
 md ($toolsFolder + "WindowsIsoDownloader\") | Out-Null
+
+Write-Output "Downloading Oscdimg from Microsoft..."
+foreach ($url in $WindowsOscdimgUrls) {
+    $outputFileName = (Split-Path $url -Leaf)
+    Invoke-WebRequest -Uri $url -OutFile ($tempOscddir + $outputFileName)
+}
+Write-Output "Extracting Oscdimg..."
+Start-Process msiexec -ArgumentList $MSIArguments -Wait
+Copy-Item -Path $oscdpath -Destination ($toolsFolder + "oscdimg.exe") | Out-Null
+Remove-Item -Path $tempOscddir -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
 
 Write-Output "Downloading WindowsIsoDownloader release from GitHub..."
 Invoke-WebRequest -Uri $windowsIsoDownloaderReleaseUrl -OutFile WindowsIsoDownloader.zip
@@ -177,7 +199,7 @@ if ($isoDownloadProcess.ExitCode -eq 0) {
 
 	#Building the new trimmed and patched iso file
 	Write-Output "Building the tiny11.iso file..."
-	.\tools\oscdimg.exe -m -o -u2 -udfver102 -bootdata:("2#p0,e,b" + $isoFolder + "boot\etfsboot.com#pEF,e,b" + $isoFolder + "efi\microsoft\boot\efisys.bin") $isoFolder c:\tiny11.iso | Out-Null
+	&"$toolsFolder\oscdimg.exe" -m -o -u2 -udfver102 -bootdata:("2#p0,e,b" + $isoFolder + "boot\etfsboot.com#pEF,e,b" + $isoFolder + "efi\microsoft\boot\efisys.bin") $isoFolder c:\tiny11.iso | Out-Null
 } else {
 	Write-Output "Unable to build the tiny11 iso (an error occured while trying to download the original iso using WindowsIsoDownloader)."
 }
